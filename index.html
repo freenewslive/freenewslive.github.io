@@ -60,6 +60,32 @@
       font-size: 0.9rem;
       color: #555;
     }
+    .card-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+.card {
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  overflow: hidden;
+  transition: transform 0.2s;
+}
+.card:hover {
+  transform: translateY(-5px);
+}
+  .card img {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;  
+  }
+  .card h3 {
+    margin: 0;
+    padding: 1rem;
+    font-size: 1.1rem;
+    border-top: 1px solid #eee;
+  }
   </style>
 </head>
 <body>
