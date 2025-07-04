@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Video.js Full-Window Player</title>
+  <title>Video.js Full-Height Player</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link href="https://vjs.zencdn.net/8.9.0/video-js.css" rel="stylesheet" />
   <script src="https://vjs.zencdn.net/8.9.0/video.min.js"></script>
 
@@ -18,10 +19,14 @@
       background: #121212;
     }
 
-    .video-js {
-      width: 100vw;
+    #player-container {
       height: 100vh;
-      margin: 0;
+      width: 100vw;
+    }
+
+    .video-js {
+      height: 100%;
+      width: 100%;
     }
 
     .vjs-menu-button-popup .vjs-menu {
@@ -31,23 +36,23 @@
 </head>
 <body>
 
-  <video
-    id="hls-player"
-    class="video-js vjs-default-skin"
-    controls
-    preload="auto"
-    playsinline
-    webkit-playsinline>
-    <source src="https://nmx1ota.akamaized.net/hls/live/2107010/Live_1/index.m3u8" type="application/x-mpegURL" />
-
-    <!-- Optional captions track -->
-    <track
-      kind="captions"
-      label="English"
-      src="https://bitdash-a.akamaihd.net/content/sintel/subtitles/subtitles_en.vtt"
-      srclang="en"
-      default />
-  </video>
+  <div id="player-container">
+    <video
+      id="hls-player"
+      class="video-js vjs-default-skin"
+      controls
+      preload="auto"
+      playsinline
+      webkit-playsinline>
+      <source src="https://nmx1ota.akamaized.net/hls/live/2107010/Live_1/index.m3u8" type="application/x-mpegURL" />
+      <track
+        kind="captions"
+        label="English"
+        src="https://bitdash-a.akamaihd.net/content/sintel/subtitles/subtitles_en.vtt"
+        srclang="en"
+        default />
+    </video>
+  </div>
 
   <script>
     const player = videojs('hls-player', {
@@ -55,15 +60,12 @@
       controls: true,
       fluid: true,
       techOrder: ['html5'],
-      html5: {
-        nativeControlsForTouch: false
-      },
+      html5: { nativeControlsForTouch: false },
       controlBar: {
         children: [
           'playToggle', 'volumePanel', 'currentTimeDisplay', 'timeDivider',
           'durationDisplay', 'progressControl', 'liveDisplay',
-          'subsCapsButton', 'pictureInPictureToggle',
-          'fullscreenToggle'
+          'subsCapsButton', 'pictureInPictureToggle', 'fullscreenToggle'
         ]
       }
     });
@@ -73,7 +75,6 @@
       rawVideo.setAttribute('playsinline', '');
       rawVideo.setAttribute('webkit-playsinline', '');
 
-      // Add adaptive quality selector
       player.httpSourceSelector({ default: 'auto' });
 
       const controlBar = player.getChild('ControlBar');
