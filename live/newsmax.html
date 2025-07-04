@@ -21,6 +21,21 @@
       text-align: center;
       padding: 1.5rem;
     }
+    .header-link {
+      text-decoration: none;
+      color: inherit;
+      display: inline-block;
+    }
+    .header-link h1 {
+      margin: 0.5rem 0;
+      font-size: 2.5rem;
+      font-weight: 700;
+    }
+    .header-link p {
+      margin: 0.5rem 0;
+      font-size: 1.2rem;
+      font-weight: 400;
+    }
     main {
       flex: 1;
       display: flex;
@@ -41,6 +56,7 @@
       height: 100%;
       border: none;
       border-radius: 12px;
+      display: block;
     }
     footer {
       text-align: center;
@@ -49,23 +65,13 @@
       font-size: 0.85rem;
       color: #555;
     }
-    .header-link {
-  text-decoration: none;
-  color: inherit;
-  display: inline-block;
-  text-align: center;
-}
-.header-link h1,
-.header-link p {
-  margin: 0.5rem 0;
-}
   </style>
 </head>
 <body>
   <header>
-    <a href="/" class="header-link"
-    <h1>Free News Live</h1>
-    <p>Stream US news for free</p>
+    <a href="/" class="header-link">
+      <h1>Free News Live</h1>
+      <p>Stream US news for free</p>
     </a>
   </header>
 
