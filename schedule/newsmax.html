@@ -152,9 +152,12 @@
         const container = document.getElementById('schedule');
         container.innerHTML = '';
 
-        // Match lines like: Show Title 2025-07-08 15:00:00 PST - 2025-07-08 16:00:00 PST
-        const regex = /([\w\s:'\-!.,]+?)\s+(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) PST\s+-\s+(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) PST/g;
-        const matches = [...html.matchAll(regex)];
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const bodyText = doc.body.textContent;
+
+        const regex = /(.+?)\s+(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) PST\s+-\s+(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) PST/g;
+        const matches = [...bodyText.matchAll(regex)];
 
         if (matches.length === 0) {
           container.textContent = 'No schedule available.';
