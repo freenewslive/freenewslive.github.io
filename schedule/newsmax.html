@@ -67,7 +67,6 @@
       font-size: 0.8rem;
     }
 
-    /* Hide header/footer if in iframe */
     body.in-iframe header,
     body.in-iframe footer {
       display: none;
@@ -96,12 +95,10 @@
   </footer>
 
   <script>
-    // Detect iframe
     if (window.self !== window.top) {
       document.body.classList.add('in-iframe');
     }
 
-    // Convert Pacific Time to local
     function convertPacificToLocal(pstString) {
       const pacificDate = new Date(pstString + ' GMT-0800');
       const localDate = new Date(pacificDate.toLocaleString('en-US', {
@@ -110,18 +107,24 @@
       return localDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
 
-    // Fetch schedule using CORS proxy
-    const proxyUrl = 'https://api.allorigins.win/get?url=';
+    const proxyUrl = 'https://corsproxy.io/?';
     const targetUrl = encodeURIComponent('https://streamingtvguides.com/Channel/NEWSMX');
 
     fetch(`${proxyUrl}${targetUrl}`)
-      .then(res => res.json())
-      .then(data => {
+      .then(res => res.text())
+      .then(html => {
         const parser = new DOMParser();
-        const doc = parser.parseFromString(data.contents, 'text/html');
+        const doc = parser.parseFromString(html, 'text/html');
+        console.log('Raw HTML:', html); // Debug output
+
         const rows = doc.querySelectorAll('.epgListingRow');
         const container = document.getElementById('schedule');
         container.innerHTML = '';
+
+        if (rows.length === 0) {
+          container.textContent = 'No schedule data found. The source may have changed.';
+          return;
+        }
 
         rows.forEach(row => {
           const timeEl = row.querySelector('.epgListingTime');
@@ -139,7 +142,7 @@
         });
       })
       .catch(err => {
-        console.error(err);
+        console.error('Fetch error:', err);
         document.getElementById('schedule').textContent = "Failed to load schedule.";
       });
   </script>
