@@ -43,6 +43,7 @@
       padding: 2rem;
       max-width: 800px;
       margin: 0 auto;
+      position: relative;
     }
 
     h2 {
@@ -74,6 +75,31 @@
 
     body.in-iframe main {
       padding: 1rem;
+    }
+
+    .error-dialog {
+      position: absolute;
+      top: 1rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #ffecec;
+      color: #b30000;
+      border: 1px solid #b30000;
+      padding: 1rem 1.25rem;
+      border-radius: 5px;
+      max-width: 90%;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      z-index: 100;
+      font-size: 0.95rem;
+    }
+
+    .error-dialog button {
+      margin-top: 0.5rem;
+      background: transparent;
+      border: none;
+      color: #b30000;
+      font-weight: bold;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -107,33 +133,39 @@
       return localDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
 
+    function showError(message) {
+      const dialog = document.createElement('div');
+      dialog.className = 'error-dialog';
+      dialog.innerHTML = `
+        <strong>Oops!</strong> ${message}
+        <br><button onclick="this.parentElement.remove()">Dismiss</button>
+      `;
+      document.querySelector('main').appendChild(dialog);
+    }
+
     const proxyUrl = 'https://corsproxy.io/?';
     const targetUrl = encodeURIComponent('https://streamingtvguides.com/Channel/NEWSMX');
 
     fetch(`${proxyUrl}${targetUrl}`)
       .then(res => res.text())
       .then(html => {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-        console.log('Raw HTML:', html); // Debug output
-
-        const rows = doc.querySelectorAll('.epgListingRow');
         const container = document.getElementById('schedule');
         container.innerHTML = '';
 
-        if (rows.length === 0) {
-          container.textContent = 'No schedule data found. The source may have changed.';
+        // Match lines like: Show Title 2025-07-08 15:00:00 PST - 2025-07-08 16:00:00 PST
+        const regex = /([\w\s:'\-!.,]+?)\s+(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) PST\s+-\s+(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) PST/g;
+        const matches = [...html.matchAll(regex)];
+
+        if (matches.length === 0) {
+          container.textContent = 'No schedule available.';
+          showError('Unable to parse the Newsmax schedule. The source format may have changed.');
           return;
         }
 
-        rows.forEach(row => {
-          const timeEl = row.querySelector('.epgListingTime');
-          const titleEl = row.querySelector('.epgListingTitle');
-          if (!timeEl || !titleEl) return;
-
-          const originalTime = timeEl.textContent.trim();
-          const title = titleEl.textContent.trim();
-          const localTime = convertPacificToLocal(originalTime);
+        matches.forEach(match => {
+          const title = match[1].trim();
+          const startTime = match[2];
+          const localTime = convertPacificToLocal(startTime);
 
           const el = document.createElement('div');
           el.className = 'schedule-item';
@@ -144,6 +176,7 @@
       .catch(err => {
         console.error('Fetch error:', err);
         document.getElementById('schedule').textContent = "Failed to load schedule.";
+        showError('Something went wrong while loading the schedule. Please try again later.');
       });
   </script>
 </body>
