@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Newsmax Schedule - Free News Live</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, sans-serif;
+      background: #f8f9fa;
+      color: #333;
+      height: 100%;
+    }
+
+    header, footer {
+      background: #b30000;
+      color: white;
+      text-align: center;
+      padding: 1rem 1.5rem;
+    }
+
+    .header-link {
+      text-decoration: none;
+      color: inherit;
+      display: inline-block;
+    }
+
+    .header-link h1 {
+      margin: 0.25rem 0;
+      font-size: 2rem;
+      font-weight: 700;
+    }
+
+    .header-link p {
+      margin: 0.25rem 0;
+      font-size: 1rem;
+      font-weight: 400;
+    }
+
+    main {
+      padding: 2rem;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    h2 {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+      color: #b30000;
+    }
+
+    .schedule-item {
+      padding: 0.75rem 0;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .schedule-item time {
+      font-weight: bold;
+      margin-right: 0.5rem;
+    }
+
+    footer {
+      background: #efefef;
+      color: #555;
+      font-size: 0.8rem;
+    }
+
+    /* Hide header/footer if in iframe */
+    body.in-iframe header,
+    body.in-iframe footer {
+      display: none;
+    }
+
+    body.in-iframe main {
+      padding: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/" class="header-link">
+      <h1>Free News Live</h1>
+      <p>Stream US news for free</p>
+    </a>
+  </header>
+
+  <main>
+    <h2>Newsmax Schedule (Your Local Time)</h2>
+    <div id="schedule">Loading schedule...</div>
+  </main>
+
+  <footer>
+    &copy; 2025 FreeNewsLive inc.
+  </footer>
+
+  <script>
+    // Detect iframe
+    if (window.self !== window.top) {
+      document.body.classList.add('in-iframe');
+    }
+
+    // Convert Pacific Time to local
+    function convertPacificToLocal(pstString) {
+      const pacificDate = new Date(pstString + ' GMT-0800');
+      const localDate = new Date(pacificDate.toLocaleString('en-US', {
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+      }));
+      return localDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    // Fetch schedule using CORS proxy
+    const proxyUrl = 'https://api.allorigins.win/get?url=';
+    const targetUrl = encodeURIComponent('https://streamingtvguides.com/Channel/NEWSMX');
+
+    fetch(`${proxyUrl}${targetUrl}`)
+      .then(res => res.json())
+      .then(data => {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(data.contents, 'text/html');
+        const rows = doc.querySelectorAll('.epgListingRow');
+        const container = document.getElementById('schedule');
+        container.innerHTML = '';
+
+        rows.forEach(row => {
+          const timeEl = row.querySelector('.epgListingTime');
+          const titleEl = row.querySelector('.epgListingTitle');
+          if (!timeEl || !titleEl) return;
+
+          const originalTime = timeEl.textContent.trim();
+          const title = titleEl.textContent.trim();
+          const localTime = convertPacificToLocal(originalTime);
+
+          const el = document.createElement('div');
+          el.className = 'schedule-item';
+          el.innerHTML = `<time>${localTime}</time> - ${title}`;
+          container.appendChild(el);
+        });
+      })
+      .catch(err => {
+        console.error(err);
+        document.getElementById('schedule').textContent = "Failed to load schedule.";
+      });
+  </script>
+</body>
+</html>
