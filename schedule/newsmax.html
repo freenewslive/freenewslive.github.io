@@ -46,10 +46,34 @@
       position: relative;
     }
 
+    #back-button {
+      display: none;
+      margin-bottom: 1rem;
+    }
+
+    .back-link {
+      display: inline-block;
+      background: #b30000;
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 5px;
+      text-decoration: none;
+      font-weight: 500;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .back-link:hover {
+      background: #990000;
+    }
+
     h2 {
       font-size: 1.5rem;
       margin-bottom: 1rem;
       color: #b30000;
+    }
+
+    body.in-iframe h2 {
+      display: none;
     }
 
     .schedule-item {
@@ -60,6 +84,12 @@
     .schedule-item time {
       font-weight: bold;
       margin-right: 0.5rem;
+    }
+
+    .schedule-details {
+      font-size: 0.85rem;
+      color: #666;
+      margin-top: 0.25rem;
     }
 
     footer {
@@ -112,6 +142,10 @@
   </header>
 
   <main>
+    <div id="back-button">
+      <a href="/" class="back-link">← Back to Home</a>
+    </div>
+
     <h2>Newsmax Schedule (Your Local Time)</h2>
     <div id="schedule">Loading schedule...</div>
   </main>
@@ -121,8 +155,12 @@
   </footer>
 
   <script>
-    if (window.self !== window.top) {
-      document.body.classList.add('in-iframe');
+    const isIframe = window.self !== window.top;
+    document.body.classList.toggle('in-iframe', isIframe);
+
+    const cameFromSite = document.referrer.includes('freenewslive.github.io') || document.referrer.includes('/live/newsmax');
+    if (!isIframe && cameFromSite) {
+      document.getElementById('back-button').style.display = 'block';
     }
 
     function convertPacificToLocal(pstString) {
@@ -168,11 +206,20 @@
         matches.forEach(match => {
           const title = match[1].trim();
           const startTime = match[2];
+          const endTime = match[3];
           const localTime = convertPacificToLocal(startTime);
 
           const el = document.createElement('div');
           el.className = 'schedule-item';
           el.innerHTML = `<time>${localTime}</time> - ${title}`;
+
+          if (!isIframe) {
+            const detail = document.createElement('div');
+            detail.className = 'schedule-details';
+            detail.textContent = `Original time: ${startTime}–${endTime} (Pacific)`;
+            el.appendChild(detail);
+          }
+
           container.appendChild(el);
         });
       })
