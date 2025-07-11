@@ -72,8 +72,22 @@
       color: #b30000;
     }
 
-    body.in-iframe h2 {
+    body.in-iframe h2,
+    body.in-iframe header,
+    body.in-iframe footer {
       display: none;
+    }
+
+    body.in-iframe main {
+      padding: 1rem;
+    }
+
+    .day-header {
+      font-size: 1.2rem;
+      font-weight: bold;
+      margin-top: 2rem;
+      margin-bottom: 0.5rem;
+      color: #b30000;
     }
 
     .schedule-item {
@@ -90,21 +104,6 @@
       font-size: 0.85rem;
       color: #666;
       margin-top: 0.25rem;
-    }
-
-    footer {
-      background: #efefef;
-      color: #555;
-      font-size: 0.8rem;
-    }
-
-    body.in-iframe header,
-    body.in-iframe footer {
-      display: none;
-    }
-
-    body.in-iframe main {
-      padding: 1rem;
     }
 
     .error-dialog {
@@ -130,6 +129,12 @@
       color: #b30000;
       font-weight: bold;
       cursor: pointer;
+    }
+
+    footer {
+      background: #efefef;
+      color: #555;
+      font-size: 0.8rem;
     }
   </style>
 </head>
@@ -163,14 +168,6 @@
       document.getElementById('back-button').style.display = 'block';
     }
 
-    function convertPacificToLocal(pstString) {
-      const pacificDate = new Date(pstString + ' GMT-0800');
-      const localDate = new Date(pacificDate.toLocaleString('en-US', {
-        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-      }));
-      return localDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
-
     function showError(message) {
       const dialog = document.createElement('div');
       dialog.className = 'error-dialog';
@@ -181,53 +178,102 @@
       document.querySelector('main').appendChild(dialog);
     }
 
-    const proxyUrl = 'https://corsproxy.io/?';
-    const targetUrl = encodeURIComponent('https://streamingtvguides.com/Channel/NEWSMX');
+    function formatDay(dateStr) {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+    }
 
-    fetch(`${proxyUrl}${targetUrl}`)
-      .then(res => res.text())
-      .then(html => {
-        const container = document.getElementById('schedule');
-        container.innerHTML = '';
+    function formatTime(airstamp) {
+      const localDate = new Date(airstamp);
+      return localDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
 
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-        const bodyText = doc.body.textContent;
+    async function fetchNewsmaxShows() {
+      let page = 0;
+      let allShows = [];
+      let found = false;
 
-        const regex = /(.+?)\s+(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) PST\s+-\s+(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) PST/g;
-        const matches = [...bodyText.matchAll(regex)];
+      while (!found) {
+        const res = await fetch(`https://api.tvmaze.com/shows?page=${page}`);
+        const shows = await res.json();
+        if (shows.length === 0) break;
 
-        if (matches.length === 0) {
-          container.textContent = 'No schedule available.';
-          showError('Unable to parse the Newsmax schedule. The source format may have changed.');
+        const newsmax = shows.filter(show => show.network && show.network.name === "Newsmax");
+        allShows.push(...newsmax);
+        if (newsmax.length > 0) found = true;
+        page++;
+      }
+
+      return allShows;
+    }
+
+    async function fetchEpisodes(showId) {
+      const res = await fetch(`https://api.tvmaze.com/shows/${showId}/episodes`);
+      return res.json();
+    }
+
+    async function loadSchedule() {
+      const container = document.getElementById('schedule');
+      container.innerHTML = '';
+
+      try {
+        const shows = await fetchNewsmaxShows();
+        if (shows.length === 0) {
+          container.textContent = 'No Newsmax shows found.';
+          showError('TVmaze did not return any Newsmax shows.');
           return;
         }
 
-        matches.forEach(match => {
-          const title = match[1].trim();
-          const startTime = match[2];
-          const endTime = match[3];
-          const localTime = convertPacificToLocal(startTime);
+        const allEpisodes = [];
+        for (const show of shows) {
+          const episodes = await fetchEpisodes(show.id);
+          episodes.forEach(ep => {
+            ep.showName = show.name;
+            allEpisodes.push(ep);
+          });
+        }
 
-          const el = document.createElement('div');
-          el.className = 'schedule-item';
-          el.innerHTML = `<time>${localTime}</time> - ${title}`;
-
-          if (!isIframe) {
-            const detail = document.createElement('div');
-            detail.className = 'schedule-details';
-            detail.textContent = `Original time: ${startTime}–${endTime} (Pacific)`;
-            el.appendChild(detail);
-          }
-
-          container.appendChild(el);
+        const grouped = {};
+        allEpisodes.forEach(ep => {
+          if (!ep.airstamp) return;
+          const day = formatDay(ep.airstamp);
+          if (!grouped[day]) grouped[day] = [];
+          grouped[day].push(ep);
         });
-      })
-      .catch(err => {
+
+        Object.keys(grouped).sort().forEach(day => {
+          const dayHeader = document.createElement('div');
+          dayHeader.className = 'day-header';
+          dayHeader.textContent = day;
+          container.appendChild(dayHeader);
+
+          grouped[day].forEach(ep => {
+            const localTime = formatTime(ep.airstamp);
+            const title = ep.showName;
+            const summary = ep.summary ? ep.summary.replace(/<[^>]+>/g, '') : '';
+
+            const el = document.createElement('div');
+            el.className = 'schedule-item';
+            el.innerHTML = `<time>${localTime}</time> - ${title}`;
+
+            if (!isIframe && summary) {
+              const detail = document.createElement('div');
+              detail.className = 'schedule-details';
+              detail.textContent = summary;
+              el.appendChild(detail);
+            }
+
+            container.appendChild(el);
+          });
+        });
+      } catch (err) {
         console.error('Fetch error:', err);
-        document.getElementById('schedule').textContent = "Failed to load schedule.";
+        container.textContent = "Failed to load schedule.";
         showError('Something went wrong while loading the schedule. Please try again later.');
-      });
+      }
+    }
+
+    loadSchedule();
   </script>
 </body>
 </html>
